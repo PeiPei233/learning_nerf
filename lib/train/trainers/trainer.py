@@ -45,13 +45,15 @@ class Trainer(object):
         max_iter = len(data_loader)
         self.network.train()
         end = time.time()
-        for iteration, batch in enumerate(data_loader):
+        pbar = tqdm.tqdm(data_loader, desc=f'Epoch: {epoch}')
+        for iteration, batch in enumerate(pbar):
             data_time = time.time() - end
             iteration = iteration + 1
 
             batch = to_cuda(batch, self.device)
             batch['step'] = self.global_step
             output, loss, loss_stats, image_stats = self.network(batch)
+            pbar.set_postfix(**{k: f'{v.item():.4f}' for k, v in loss_stats.items()})
 
             # training stage: loss; optimizer; scheduler
             loss = loss.mean()
@@ -84,7 +86,7 @@ class Trainer(object):
 
                 training_state = '  '.join(['eta: {}', '{}', 'lr: {:.6f}', 'max_mem: {:.0f}'])
                 training_state = training_state.format(eta_string, str(recorder), lr, memory)
-                print(training_state)
+                tqdm.tqdm.write(training_state)
 
                 # record loss_stats and image_dict
                 recorder.update_image_stats(image_stats)
