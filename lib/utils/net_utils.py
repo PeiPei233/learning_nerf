@@ -317,8 +317,13 @@ def load_model(net,
     print('load model: {}'.format(os.path.join(model_dir,
                                                '{}.pth'.format(pth))))
     pretrained_model = torch.load(
-        os.path.join(model_dir, '{}.pth'.format(pth)), 'cpu')
+        os.path.join(model_dir, '{}.pth'.format(pth)), map_location=torch.device(f'cuda:{cfg.local_rank}'))
     net.load_state_dict(pretrained_model['net'])
+    for param in net.parameters():
+        # param.requires_grad = True
+        param.data = param.data.to(torch.device(f'cuda:{cfg.local_rank}'))
+        if param._grad is not None:
+            param._grad.data = param._grad.data.to(torch.device(f'cuda:{cfg.local_rank}'))
     if 'optim' in pretrained_model:
         optim.load_state_dict(pretrained_model['optim'])
         scheduler.load_state_dict(pretrained_model['scheduler'])
@@ -380,7 +385,7 @@ def load_network(net, model_dir, resume=True, epoch=-1, strict=True):
         model_path = model_dir
 
     print('load model: {}'.format(model_path))
-    pretrained_model = torch.load(model_path)
+    pretrained_model = torch.load(model_path, torch.device('cuda:0'))
     net.load_state_dict(pretrained_model['net'], strict=strict)
     if 'epoch' in pretrained_model:
         return pretrained_model['epoch'] + 1
